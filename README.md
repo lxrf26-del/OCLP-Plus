@@ -1,138 +1,82 @@
-## 📌 **Hackintosh is already history.**
- 
- **Since December 2025, I have been maintaining OCLP-Plus on my own. Looking back, I feel saddened by the end of an era.** 
- * This project was officially frozen on **June 28, 2026**.
- * 📢 **Important notice for users:**
- * Unless something extraordinary happens, **no further updates** will be released.
- * Existing versions **will remain functional**.
- * _Best wishes and prosperity to all._
+# OPLC-Plus (Dual-Architecture macOS 27 Project)
 
+OPLC-Plus is an experimental, developer-focused fork targeting **macOS 27 Golden Gate** compatibility across two highly unconventional platforms: Legacy Intel Macs and modern Qualcomm Snapdragon ARM laptops. 
 
-<div align="center">
-<img src="https://github.com/YBronst/OCLP-Plus/blob/main/docs/images/OC-Patcher.png"  alt="OC-Patcher Logo" width="256" />
+By combining binary instruction translation for x86_64 and low-level platform firmware emulation for Qualcomm ARM64, this project bypasses Apple Silicon hardware exclusivity.
 
-# [OCLP-Plus (Tahoe Patch Set)](https://github.com/YBronst/OCLP-Plus/releases)
+---
 
-</div>
+## 📊 Development Status & Roadmap
 
-## ⚠️ This repository is intended exclusively for advanced Hackintosh systems.
-* **This is NOT a project to create patches for unsupported Macs.**
-* **It does not include additional fixes for graphics acceleration or frameworks for creating root patches for unsupported Macs.**
+Because these platforms use completely different hardware paradigms, progress is tracked across two distinct engineering branches:
 
-## 🌟 Key Features
+### 💻 1. Intel Mac Support (The Translation Branch)
+Utilizes low-level binary instruction translation to force the pure ARM64 macOS 27 kernel to run on legacy x86_64 Intel processors.
+* **Status:** Proof of concept achieved on genuine hardware (e.g., 2013 Mac Pro "Trash Can").
+* **Current Core Targets:**
+  - [x] **Kernel Initialization:** Spawning a functional `Darwin 27.0.0 x86_64` environment.
+  - [x] **Driver Injection:** Successfully mounting a 159-kext stack using macOS 26 Tahoe drivers.
+  - [x] **DriverKit Runtime:** Restoring the missing x86_64 `io user server` runtime for stable HID interaction.
+  - [x] **Basic WindowServer:** Renders the login window, wallpaper, and user icons.
+  - [ ] **Password Handoff:** *Current Roadblock.* Fixing the crypto/Secure Enclave token handoff on x86 CPUs to allow full desktop login.
 
-### 🏔️ Full macOS Tahoe Support
+### 📱 2. Snapdragon ARM Support (The Platform Emulation Branch)
+Bridges the architectural gap between Qualcomm's Snapdragon X-Series platforms and Apple Silicon's proprietary device tree/firmware environments using EL2 hypervisor and custom ACPI shims.
+* **Status:** Highly experimental. Interface elements successfully drawing.
+* **Current Core Targets:**
+  - [x] **Basic I/O:** Functioning laptop keyboard and trackpad routing.
+  - [x] **UI Draw:** Renders basic elements like the system Dock and desktop framebuffers.
+  - [ ] **Graphics Acceleration:** *Current Roadblock.* Mapping macOS's Metal graphics API to Qualcomm Adreno GPUs to enable fluid UI animations.
+  - [ ] **Power Management:** Implementing stable ACPI tables for system sleep, wake, and battery scaling.
 
-* **Modern** root patching support for macOS Tahoe 26.0 (25A5316i) through macOS 26.4.1 (25E253) and later versions.
-* **Supported Mac Models (SMBIOS)**: For macOS Tahoe, this patch set is designed for the following native or spoofed models:
+---
 
-   * **iMac**: iMac20,1, iMac20,2
-   * **MacBook Pro**: MacBookPro16,1, MacBookPro16,2, MacBookPro16,4
-   * **Mac Pro**: MacPro7,1
+## 📂 Repository Layout
 
-* **This set creates only $${\color{red} draft \ templates}$$** for manual configuration and does not generate ready-made EFI folders.
-   * **$${\color{red}To \ avoid \ unexpected \ errors}$$, I recommend using lzhoang2801** [`OpCore Simplify`](https://github.com/lzhoang2801/OpCore-Simplify).
-
-* **OCLP-Plus (Tahoe Patch Set)** supports macOS Sequoia 15.7.5 (24G624) and earlier, such as OpenCore Legacy Patcher 2.4.1.
-* **Note**: For macOS Sequoia and earlier, compatibility and SMBIOS requirements follow the standard limits of each respective operating system.
-
-### 📶 Wireless & Continuity
-*  **Restores full functionality for Broadcom-based wireless chipsets** (BCM4360 and similar), including:
-
-    * **AWDL support** specifically for macOS Tahoe 26.x.
-    * **Stable Wi-Fi** (2.4GHz / 5GHz).
-    * **AirDrop, Handoff, and AirPlay** via fully synchronized frameworks.
- 
-### ❌Non-functional features
-*  **On majority of patched Macs, iPhone Mirroring and Apple Intelligence won't be functional.**
-  
-   *  iPhone Mirroring requires T2 for attestation and Apple Intelligence requires an NPU only found in Apple Silicon.
-   *  The patcher is unable to provide a fix for these as they're hardware requirements.
-
-
-
-### 🚫 Intel Wi-Fi (AirportItlwm) is NOT supported 
-*  **This fork is exclusively optimized for Broadcom-based wireless chipsets.**
-    *  If you require Intel Wi-Fi patches for Tahoe, please use [OCLP-Mod](https://github.com/laobamac/OCLP-Mod).
-
-### 🔊 Modern Audio (AppleHDA Restoration)
-Starting with macOS Tahoe Beta 2, Apple removed the legacy `AppleHDA.kext`. This patch set brings it back, ensuring built-in audio works on supported legacy systems.
-*  **Manual Toggle:** A new "Modern Audio" toggle in the Root Patches menu allows you to enable or disable this restoration manually.
-*  **KDK Integration:** Automatically handles the necessary Kernel Debug Kit (KDK) requirements for audio driver linking.
-
-### 🛠️ macOS 26.4 Compatibility Fixes
-*  **APFS-Only Environment:** Adapted the patching logic to handle the removal of HFS+ in macOS 26.4. The patcher now utilizes APFS for all internal resource mounting and operations.
->  **Elevated hdiutil Permissions:** Fixed a critical issue where macOS 26.4 disallowed mounting disk images without root privileges.
->
-> The patcher now correctly escalates via the Privileged Helper Tool.
-
-## ⚠️ Important Technical Notes
-*  **Graphics patches for Deprecated accelerators in Tahoe are officially impossible. Use Sequoia for full acceleration.**
-
-### 🔑 AMFI & Security
-
-*  **AMFI Alert:** To successfully bypass Apple Mobile file integrity checks, you must use AMFIPass.kext with the `-amfipassbeta` boot argument.
-*  **Note:** If third-party browsers (e.g., Firefox) or camera/mic permissions fail, ensure the `-amfipassbeta` boot argument is present.
-*  **SIP Requirements:** System Integrity Protection must be set properly.
-*  **Typical Value:** (CSR_ALLOW_UNTRUSTED_KEXTS | CSR_ALLOW_UNRESTRICTED_FS).
-*  **OpenCore config.plist:** NVRAM > Add > 7C436110-AB2A-4BBB-A880-FE41995C9F82 > csr-active-config (data) <03080000>.
-*  **Clover config.plist:** Set RtVariables > CsrActiveConfig (string) 0x803.
-*  **Secure Boot Model:** To allow root patching for Wi-Fi and other drivers, Apple Secure Boot must be disabled.
-*  **OpenCore:** Set Misc > Security > SecureBootModel to Disabled.
->
->  **Clover:** Ensure RtVariables > HWTarget is NOT set (must be empty) or commented out (e.g., HWTarget?) to keep Apple Secure Boot inactive.
-
-### 🔄 Apply Changes: Reset NVRAM
-> To ensure these new security settings (SIP, AMFI, and Secure Boot) take effect, you MUST perform a Reset NVRAM after saving your config.plist.
-> OpenCore: Select "Reset NVRAM" from the boot picker menu (or press Space if it's hidden).
-> Clover: Press F11 at the boot screen to clear NVRAM and restart.
-
-### ⚒️ [`Build and run from source`](https://github.com/YBronst/OCLP-Plus/blob/main/SOURCE.md)
-
-### 💾 Installation Requirements
-💡  **Before Running Post-Install Patches:**
-
-⚠️ **Root Volume Dirty Error:**
-* **If the patcher detects that the system volume has been modified** (e.g., patches already applied or seal broken).
-* **It will block further patching** to prevent system instability.
-* **To re-patch:** You must first use the "Revert Root Patches" button to restore the original system state.
-* **If no manifest is found:** If the volume is modified but the patcher cannot find a record of what was installed, it will display a "Root volume is modified" error. In this case, you should still attempt a "Revert Root Patches" or reinstall macOS to clean the volume.
-
-<details>
-<summary>🛠️ <b>Advanced: Manual Force Restore (Emergency only)</b></summary>
-
-**Emergency Recovery:** If you encounter a boot loop after patching, boot into **Recovery Mode** and restore the snapshot to the last sealed state using these terminal commands:
-
-```bash
-mount -uw /Volumes/YourDiskName 
-bless --mount /Volumes/YourDiskName --bootefi --last-sealed-snapshot
+```text
+OPLC-Plus/
+├── src/
+│   ├── target_intel/           # --- INTEL MAC MODULES ---
+│   │   ├── arm2x86_core/       # Intercepts ARM64 kernel instructions for x86_64 execution
+│   │   ├── tahoe_kext_bridge/  # Scripts to inject the 159-kext stack from macOS 26
+│   │   └── driverkit_runtime/  # Reconstructs the deleted x86_64 DriverKit/HID runtime
+│   │
+│   ├── target_snapdragon/      # --- SNAPDRAGON MODULES ---
+│   │   ├── platform_emulation/ # Device trees and ACPI shims for Qualcomm X-Series firmware
+│   │   ├── adreno_framebuffer/ # Initial UI rendering and early Metal-to-Adreno hooks
+│   │   └── qualcomm_hid/       # Keyboard and trackpad I/O routing for laptop hardware
+│   │
+│   └── shared/                 # Common OpenCore configuration wrappers
+├── templates/                  # Base config.plist layouts
+│   ├── intel_mac/              # Profiles targeting real hardware (e.g., MacPro7,1, MacPro6,1)
+│   └── snapdragon_arm/         # Experimental profiles spoofing Apple Silicon identities
+└── README.md                   # Project documentation
 ```
-*Replace "YourDiskName" with the actual name of your drive (e.g., Macintosh\ HD).*
-</details>
 
+---
 
-* **KDK is mandatory:** For macOS 13 through Tahoe (26.x), the Kernel Debug Kit must be installed for drivers like AppleHDA to link correctly. Use the Help > Download KDK button.
+## 🛠️ Getting Started for Contributors
 
-⚠️ **Resource Dependency Notice**
-* **Patcher Resources:** This version relies on the [`PatcherSupportPkg`](https://github.com/YBronst/PatcherSupportPkg) for native Tahoe binaries.
-> **Important:** Please be aware that if this resource becomes unavailable for any reason (e.g., server downtime or repository removal),
-> the OCLP-3.2.1 Tahoe Patch Set will lose its ability to fetch the necessary binaries, and root patching will fail.
+### Prerequisites
+* A copy of the macOS 26 (Tahoe) full installer (for extracting the x86_64 legacy driver kext stack).
+* A cross-compilation toolchain capable of targeting both `x86_64` and `aarch64`.
 
-## 📝 [`Change Log`](https://github.com/YBronst/OCLP-Plus/blob/main/CHANGELOG.md)
+### Building the Project Templates
+1. Clone the repository:
+   ```bash
+   git clone https://github.com
+   cd OPLC-Plus
+   ```
+2. Run the template configuration generator targeting your hardware architecture:
+   ```bash
+   # For Intel Mac targets
+   python3 src/shared/generate.py --target intel --smbios MacPro7,1
 
-## 📜 Credits
+   # For Snapdragon targets
+   python3 src/shared/generate.py --target snapdragon
+   ```
 
-* [`Dortania OpenCore Legacy Patcher Team`](https://github.com/dortania/OpenCore-Legacy-Patcher)
-* [`InsanelyMac community`](https://www.insanelymac.com/)
-* [`Acidanthera`](https://github.com/Acidanthera) (OpenCorePkg, Lilu, etc.)
-* [`Dortania Team`](https://github.com/dortania) (Original OCLP authors)
-* [`lzhoang2801`](https://github.com/kgp-macPro/OCLP-lzhoang2801) (Original Tahoe patchset)
-* [`CloverHackyColor`](https://github.com/CloverHackyColor) (Hackintosh essentials and beyond)
-* [`YBronst`](https://github.com/YBronst) (Developer and optimizer of tools for macOS Tahoe26.x)
-* [`laobamac`](https://github.com/laobamac) (Developer OCLP-Mod, Chinese language)
-* [`crystall1nedev`](https://github.com/crystall1nedev) (Eva Isabella Luna)
+---
 
-## ⚖️ Disclaimer
-This is an **experimental Project** intended for advanced users and complex Hackintosh/Legacy Mac configurations. Use at your own risk.
-
-**Community Discussion:** [`InsanelyMac Thread`](https://www.insanelymac.com/forum/topic/362543-the-latest-the-oclp-plus-321-tahoe-patch-set-is-out/)
+## ⚠️ Disclaimer
+This is a highly experimental developer ecosystem. It does not provide plug-and-play, end-user EFI folders or installation images. Modifying operating system kernels can lead to permanent data loss or unbootable hardware states. Proceed with caution.
