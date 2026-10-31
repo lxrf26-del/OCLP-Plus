@@ -15,17 +15,17 @@ class Constants:
         # Patcher Versioning
         self.patcher_version:                 str = "3.2.2"  # OCLP-Plus
         self.patcher_support_pkg_version:     str = "2.0.0"  # PatcherSupportPkg
-        self.copyright_date:                  str = "Copyright © 2020-2026 Dortania and YBronst"
+        self.copyright_date:                  str = "Copyright © 2020-2026 Dortania and lxrf26-del"
         self.patcher_name:                    str = "OCLP-Plus"
 
         # URLs
-        self.url_patcher_support_pkg:         str = "https://github.com/YBronst/PatcherSupportPkg/releases/tag/2.0.0/Universal-Binaries.dmg"
+        self.url_patcher_support_pkg:         str = "https://github.com/Ybronst/PatcherSupportPkg/releases/tag/2.0.0/Universal-Binaries.dmg"
         self.discord_link:                    str = "https://discord.gg/rqdPgH8xSN"
         self.guide_link:                      str = "https://dortania.github.io/OpenCore-Legacy-Patcher/"
         self.kdk_support_pkg_link:            str = "https://github.com/dortania/KdkSupportPkg/releases"
         self.repo_link:                       str = "https://github.com/YBronst/OCLP-Plus"
         self.installer_pkg_url:               str = f"{self.repo_link}/releases/download/{self.patcher_version}/AutoPkg-Assets.pkg"
-        self.installer_pkg_url_nightly:       str = "http://nightly.link/YBronst/OCLP-Plus/workflows/build-app-wxpython/main/AutoPkg-Assets.pkg.zip"
+        self.installer_pkg_url_nightly:       str = "http://nightly.link/lxrf26-del/OCLP-Plus/workflows/build-app-wxpython/main/AutoPkg-Assets.pkg.zip"
 
         # OpenCore Versioning
         # https://github.com/acidanthera/OpenCorePkg
@@ -251,8 +251,8 @@ class Constants:
             os_data.os_data.ventura,
             os_data.os_data.sonoma,
             os_data.os_data.sequoia,
-        ]
-
+            os_data.os_data.tahoe
+            os_data.os_data.golden_gate
     @property
     def special_build(self):
         """
@@ -847,8 +847,8 @@ class Constants:
             str(self.icon_path_macos_sonoma),
             str(self.icon_path_macos_sequoia),
             str(self.icon_path_macos_tahoe),
-        ]
-
+            str(self.icon_path_macos_golden_gate
+     
     sbm_values = [
         "j137ap",  #  iMacPro1,1
         "j680ap",  #  MacBookPro15,1
