@@ -252,3 +252,23 @@ def generate_and_save_config(target_os: int, hardware_type: str, hardware_id: st
 if __name__ == "__main__":
     # Test Run: Generate a draft config layout for a 2013 Trash Can Mac Pro
     generate_and_save_config(MacOSVersions.GOLDEN_GATE, "intel_legacy", "MacPro6,1")
+# Insert this import at the top of src/shared/generate.py
+from boot_flags import BootFlagsCalculator
+
+# Update step 3 inside build_intel_legacy_profile(cls, smbios_id):
+        spec = LegacyMacDictionary.get_model_spec(smbios_id)
+        intel_flags = BootFlagsCalculator.calculate_intel_flags(spec["cpu_generation"])
+        
+        config["NVRAM"]["Add"]["7C436110-AB2A-4BBB-A880-FE41995C9F82"] = {
+            "boot-args": intel_flags["boot-args"],
+            "csr-active-config": intel_flags["csr-active-config"]
+        }
+
+# Update step 3 inside build_snapdragon_profile(cls, soc_id):
+        profile = SnapdragonPlatformDictionary.identify_soc_profile(soc_id)
+        snap_flags = BootFlagsCalculator.calculate_snapdragon_flags(profile["required_shims"])
+        
+        config["NVRAM"]["Add"]["7C436110-AB2A-4BBB-A880-FE41995C9F82"] = {
+            "boot-args": snap_flags["boot-args"],
+            "csr-active-config": snap_flags["csr-active-config"]
+        }
