@@ -271,4 +271,15 @@ from boot_flags import BootFlagsCalculator
         config["NVRAM"]["Add"]["7C436110-AB2A-4BBB-A880-FE41995C9F82"] = {
             "boot-args": snap_flags["boot-args"],
             "csr-active-config": snap_flags["csr-active-config"]
-        }
+           # Import the translator class inside src/shared/generate.py
+sys.path.append('src/target_intel/arm2x86_core')
+from translator import ARM2x86Translator
+
+# Insert this routing logic inside generate_and_save_config() right after final_config is built:
+    if hardware_type == "intel_legacy":
+        spec = LegacyMacDictionary.get_model_spec(hardware_id)
+        # Initialize the instruction compiler for this specific Mac's CPU generation
+        core_translator = ARM2x86Translator(spec["cpu_generation"], spec["required_translation_flags"])
+        core_translator.build_instruction_lut()
+        core_translator.export_translation_payloads()
+
