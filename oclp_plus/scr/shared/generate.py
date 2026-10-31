@@ -134,8 +134,8 @@ class ConfigBoilerplateGenerator:
     def build_intel_legacy_profile(cls, smbios_id: str) -> dict:
         """Injects translation layers, DriverKit patches, and 159-kext variables for 2010-2015 Macs."""
         config = cls.get_base_skeleton()
-        spec = LegacyMacDictionary.get_model_spec(smbios_id)
-        
+        intel_flags = BootFlagsCalculator.calculate_intel_flags(spec["cpu_generation"], smbios_id)
+
         # 1. Setup translation runtime hooks inside Kernel settings
         config["Kernel"]["Emulate"] = {
             "Cpuid1Data":,
