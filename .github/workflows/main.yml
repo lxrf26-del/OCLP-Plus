@@ -1,0 +1,57 @@
+name: OPLC-Plus Automated Build & Compilation CI
+
+on:
+  push:
+    branches: [ "main", "development" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  validate_and_compile:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Check out the repository source code tree
+    - name: Checkout OPLC-Plus Repository
+      uses: actions/checkout@v4
+
+    # 2. Initialize the Python execution environment
+    - name: Set up Python Runtime (3.11)
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    # 3. Check Python scripts for syntax errors or breaking typos
+    - name: Lint and Validate Python Core Logic
+      run: |
+        python3 -m py_compile src/shared/os_data.py
+        python3 -m py_compile src/shared/boot_flags.py
+        python3 -m py_compile src/target_intel/legacy_models.py
+        python3 -m py_compile src/target_intel/extract_tahoe_kexts.py
+        python3 -m py_compile src/target_snapdragon/platform_models.py
+        python3 -m py_compile src/shared/generate.py
+
+    # 4. Install the official Intel ACPI Compiler (iasl) tool utilities
+    - name: Install Intel ACPI Compiler Tools (iasl)
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y iasl
+
+    # 5. Build build workspaces and compile the Snapdragon ASL code to a binary AML table
+    - name: Compile Universal Snapdragon Emulation ACPI Table
+      run: |
+        mkdir -p dist/acpi
+        iasl -sa -p dist/acpi/SSDT-OPLC-SNAP src/target_snapdragon/SSDT-OPLC-SNAP.asl
+
+    # 6. Verify that the final OpenCore config.plist generation logic completes cleanly
+    - name: Test Intel Model OpenCore Template Construction
+      run: |
+        python3 src/shared/generate.py
+
+    # 7. Package the compiled firmware and config boilerplates as an artifact release zip
+    - name: Upload Compiled Deployment Assets
+      uses: actions/upload-artifact@v4
+      with:
+        name: oplc-plus-build-payloads
+        path: |
+          dist/
