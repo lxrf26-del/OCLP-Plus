@@ -10,7 +10,8 @@ class BootFlagsCalculator:
     BASE_DEBUG_FLAGS = "-v amfi=0x80 ipc_control_port_options=0"
 
     @classmethod
-    def calculate_intel_flags(cls, cpu_generation: str) -> dict:
+        def calculate_intel_flags(cls, cpu_generation: str, smbios_id: str = None) -> dict:
+
         """
         Computes boot arguments and SIP variables for 2010-2015 Intel architectures.
         Locks in arm2x86 core initialization variables.
@@ -25,9 +26,11 @@ class BootFlagsCalculator:
             args.append("oplc_flags=0x03 translation_mode=standard")
         elif cpu_generation in ["Haswell", "Broadwell"]:
             # Native AVX2 vector paths accelerate the translation layer
-            args.append("oplc_flags=0x07 translation_mode=fast avx2=true")
-            
-        # Add the legacy DriverKit runtime flag to keep HID components alive
+              
+        # Specific Iris Pro 5200 Display Fallback Rules
+        if smbios_id in ["MacBookPro11,4", "MacBookPro11,1"]:
+            args.append("-igfxvesa-no-egpu modern_framebuffer=1")
+
         args.append("restore_driverkit=1")
 
         return {
