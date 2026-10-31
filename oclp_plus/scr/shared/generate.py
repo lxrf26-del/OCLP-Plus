@@ -55,3 +55,44 @@ def generate_oplc_template(target_os: int, hardware_type: str, smbios_id: str = 
 if __name__ == "__main__":
     # Test a Trash Can Mac Pro deployment profile
     generate_oplc_template(MacOSVersions.GOLDEN_GATE, "intel_legacy", "MacPro6,1")
+import sys
+from os_data import OSData, MacOSVersions
+from legacy_models import LegacyMacDictionary
+
+# Importing the brand new Snapdragon platform decoder
+sys.path.append('src/target_snapdragon')
+from platform_models import SnapdragonPlatformDictionary
+
+def generate_oplc_template(target_os: int, hardware_type: str, hardware_id: str = None):
+    if target_os != MacOSVersions.GOLDEN_GATE:
+        print("[-] Unsupported OS targets.")
+        return
+
+    print(f"[!] Target OS Selected: {OSData.OS_NAME} (macOS 27)")
+    
+    # --- INTEL BRANCH ---
+    if hardware_type == "intel_legacy":
+        if LegacyMacDictionary.is_supported_legacy_model(hardware_id):
+            spec = LegacyMacDictionary.get_model_spec(hardware_id)
+            print(f"[+] Initializing Tier-1 Intel Workspace for: {spec['marketing_name']}")
+        else:
+            print(f"[-] Hardware Error: {hardware_id} is outside the 2010-2015 Tier-1 launch window.")
+            sys.exit(1)
+            
+    # --- SNAPDRAGON BRANCH ---
+    elif hardware_type == "snapdragon":
+        print("[+] Initializing Universal Qualcomm Snapdragon Workspace...")
+        
+        # Fallback to generic parsing if user doesn't specify an exact processor sub-variant
+        soc_target = hardware_id if hardware_id else "X1E-80-100"
+        profile = SnapdragonPlatformDictionary.identify_soc_profile(soc_target)
+        
+        print(f"[+] Targeted Core: {profile['marketing_family']}")
+        print(f"[+] Mapping Engine: {profile['gpu_architecture']}")
+        print(f"[+] Injecting Emulation Shims: {', '.join(profile['required_shims'])}")
+        
+        # Core execution steps will now generate specific EL2 hypervisor hooks...
+
+if __name__ == "__main__":
+    # Test compiling a layout profile for a premium Snapdragon X Elite device
+    generate_oplc_template(MacOSVersions.GOLDEN_GATE, "snapdragon", "X1E-84-100")
