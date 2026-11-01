@@ -63,7 +63,7 @@ jobs:
         mkdir -p dist/OPLC-Plus.app/Contents/Resources
         
         # Pull everything into resources safely
-        cp -R oclp_plus dist/OPLC-Plus.app/Contents/Resources/ 2>/dev/null || cp -R oplc_plus dist/OPLC-Plus.app/Contents/Resources/
+        cp -R oclp_plus dist/OPLC-Plus.app/Contents/Resources/ 2>/dev/null || cp -R oplc_plus dist/OPLC-Plus.app/Contents/Resources/ 2>/dev/null || true
         
         LAUNCHER_PATH=$(find dist/OPLC-Plus.app/Contents/Resources/ -name "os_data.py" | head -n 1)
         
