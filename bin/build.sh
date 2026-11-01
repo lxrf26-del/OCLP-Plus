@@ -110,3 +110,46 @@ while [[ $# -gt 0 ]]; do
             exit 1
             ;;
     esac
+# Add this code selection flag directly inside the main case routing blocks in /build.sh
+        --app)
+            echo -e "${CYAN}[*] Starting OPLC-Plus Native macOS Application Bundle Build...${NC}"
+            
+            APP_NAME="OPLC-Plus.app"
+            BUILD_DIR="dist/$APP_NAME"
+            CONTENTS_DIR="$BUILD_DIR/Contents"
+            
+            # Step 1: Wipe clean any old workspace files
+            rm -rf "$BUILD_DIR"
+            mkdir -p "$CONTENTS_DIR/MacOS"
+            mkdir -p "$CONTENTS_DIR/Resources/src"
+            
+            # Step 2: Ensure your core driver extensions compile cleanly into your payloads tracking paths
+            if [ -f "src/target_intel/arm2x86_core/kext/Makefile" ]; then
+                echo -e "${CYAN}[*] Bundling binary kernel extension modules...${NC}"
+                make -C src/target_intel/arm2x86_core/kext clean all install
+            fi
+            
+            # Step 3: Copy over your complete Python script logic framework to act as internal App resources
+            cp -R src/ "$CONTENTS_DIR/Resources/src/"
+            if [ -d "payloads" ]; then
+                cp -R payloads/ "$CONTENTS_DIR/Resources/payloads/"
+            fi
+            
+            # Step 4: Inject metadata assets and the launching code
+            cp src/shared/app_assets/Info.plist "$CONTENTS_DIR/"
+            cp src/shared/app_assets/launcher.sh "$CONTENTS_DIR/MacOS/OPLC-Plus"
+            chmod +x "$CONTENTS_DIR/MacOS/OPLC-Plus"
+            
+            # Step 5: Pull down the official BridgePatcher logo icon payload straight into the app resource path
+            echo -e "${CYAN}[*] Pulling down canonical AppIcon asset dependencies...${NC}"
+            curl -s -o "$CONTENTS_DIR/Resources/AppIcon.icns" "https://githubusercontent.com" || true
+            
+            # Step 6: Compress the application into a distribution-ready zip file for your GitHub Release page
+            echo -e "${CYAN}[*] Packaging application archive for GitHub Release page deployment...${NC}"
+            cd dist
+            zip -r "../OPLC-Plus-v0.1.0-Beta-Release.zip" "$APP_NAME" > /dev/null
+            cd ..
+            
+            echo -e "${GREEN}[+++++] APP BUILD COMPLETE! Release archive generated at: ./OPLC-Plus-v0.1.0-Beta-Release.zip${NC}"
+            exit 0
+            ;;
