@@ -103,3 +103,28 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+# Update the --intel flag logic inside /build.sh to include the structural check:
+        --intel)
+            # ... previous generation script calls ...
+            python3 src/shared/generate.py --target intel_legacy --hardware_id "$TARGET_ID"
+            
+            # --- NEW: Run configuration verification before declaring success ---
+            python3 src/shared/verify_config.py
+            
+            echo -e "${GREEN}[+++] Phase 1 deployment build finalized successfully inside /dist workspace.${NC}"
+            shift 2
+            exit 0
+            ;;
+
+# Do the exact same thing to update the --snapdragon case loop inside /build.sh:
+        --snapdragon)
+            # ... previous firmware compilation script calls ...
+            python3 src/shared/generate.py --target snapdragon --hardware_id "$TARGET_SOC"
+            
+            # --- NEW: Run configuration verification before declaring success ---
+            python3 src/shared/verify_config.py
+            
+            echo -e "${GREEN}[+++] Phase 1 deployment build finalized successfully inside /dist workspace.${NC}"
+            shift 2
+            exit 0
+            ;;
