@@ -1,3 +1,15 @@
+# Insert this import at the top of src/shared/generate.py
+sys.path.append('src/target_intel/arm2x86_core')
+from v3_optimizer import V3LoopOptimizer
+
+# Inside your build_intel_legacy_profile(cls, smbios_id) method:
+        # Load your specific CPU specification profiles
+        spec = LegacyMacDictionary.get_model_spec(smbios_id)
+        
+        # --- NEW: Initialize the v3 Optimization Tracking Module ---
+        v3_engine = V3LoopOptimizer(spec["cpu_generation"])
+        v3_engine.print_v3_status_report()
+        v3_params = v3_engine.calculate_v3_translation_parameters()
 import sys
 from os_data import OSData, MacOSVersions
 
