@@ -1,0 +1,28 @@
+name: Generate Application Release Asset
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build_macos_app:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout Code Tree
+      uses: actions/checkout@v4
+
+    - name: Run Build Action Script
+      run: |
+        chmod +x .github/actions/build_app.sh
+        ./.github/actions/build_app.sh
+
+    - name: Upload Application Zip to Release Page
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./OPLC-Plus.app.zip
+        asset_name: OPLC-Plus.app.zip
+        asset_content_type: application/zip
