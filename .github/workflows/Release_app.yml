@@ -3,65 +3,78 @@ name: Generate Application Release Asset
 on:
   push:
     tags:
-      - 'v*' # Triggers instantly whenever you push a version tag (e.g., v0.1.0)
-  workflow_dispatch: # Allows you to manually trigger this build via the GitHub website
+      - 'v*' # Triggers instantly whenever you push a tag (e.g., v0.1.0)
+  workflow_dispatch: # Allows you to manually trigger a run test from the Actions web UI tab
 
 permissions:
-  contents: write # Mandatory permission allowing the runner to publish the release and upload files
+  contents: write
 
 jobs:
   validate_and_compile:
-    runs-on: macos-13 # Forces Intel x86_64 cloud machine runner for native compilation pipelines
+    runs-on: macos-13 # Ensures a pure Intel x86_64 Mac runner environment
 
     steps:
-    # 1. Check out the repository source code tree
+    # 1. Fetch your current repository files
     - name: Checkout OPLC-Plus Repository
       uses: actions/checkout@v4
 
-    # 2. Initialize the Python execution environment
+    # 2. Start Python 3.11 Environment
     - name: Set up Python Runtime (3.11)
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
 
-    # 3. Check Python scripts for syntax errors using your exact folder layout path
+    # 3. Dynamic Python Finder Step (Finds the script regardless of typo folders)
     - name: Lint and Validate Python Core Logic
       run: |
-        python3 -m py_compile oplc_plus/scr/shared/os_data.py
+        echo "[*] Locating os_data.py files in current tree..."
+        TARGET_FILE=$(find . -name "os_data.py" | head -n 1)
+        if [ -n "$TARGET_FILE" ]; then
+          echo "[+] Found core target script at: $TARGET_FILE"
+          python3 -m py_compile "$TARGET_FILE"
+        else
+          echo "[-] Error: Core script os_data.py was not found anywhere in the tree!"
+          exit 1
+        fi
 
-    # 4. Install the official Intel ACPI Compiler (iasl) tool utilities
+    # 4. Install Intel ACPI Compiler Tools
     - name: Install Intel ACPI Compiler Tools (iasl)
       run: |
         brew update
         brew install iasl
 
-    # 5. Build workspaces and compile the Snapdragon ASL code to a binary AML table
+    # 5. Dynamic ACPI Table Finder & Compilation 
     - name: Compile Universal Snapdragon Emulation ACPI Table
       run: |
         mkdir -p dist/acpi
-        if [ -f "oplc_plus/scr/target_snapdragon/SSDT-OPLC-SNAP.asl" ]; then
-          iasl -sa -p dist/acpi/SSDT-OPLC-SNAP oplc_plus/scr/target_snapdragon/SSDT-OPLC-SNAP.asl
+        ASL_FILE=$(find . -name "SSDT-OPLC-SNAP.asl" | head -n 1)
+        if [ -n "$ASL_FILE" ]; then
+          echo "[+] Compiling firmware source table: $ASL_FILE"
+          iasl -sa -p dist/acpi/SSDT-OPLC-SNAP "$ASL_FILE"
         else
-          echo "[!] Skipping ASL compilation: Source file not found."
+          echo "[!] Skipping ASL stage: SSDT-OPLC-SNAP.asl not present in layout."
         fi
 
-    # 6. Execute Application Compilation Setup
+    # 6. Automatic Workspace Bundler Action
     - name: Run Build Action Script
       run: |
-        if [ -f ".github/actions/build_app.sh" ]; then
-          chmod +x .github/actions/build_app.sh
-          ./.github/actions/build_app.sh
-        else
-          echo "[!] Creating emergency fallback workspace for packaging..."
-          mkdir -p dist/OPLC-Plus.app/Contents/MacOS
-          mkdir -p dist/OPLC-Plus.app/Contents/Resources
-          cp -R oplc_plus dist/OPLC-Plus.app/Contents/Resources/
-          echo -e '#!/bin/bash\npython3 "$(dirname "$0")/../Resources/oplc_plus/scr/shared/os_data.py"' > dist/OPLC-Plus.app/Contents/MacOS/OPLC-Plus
-          chmod +x dist/OPLC-Plus.app/Contents/MacOS/OPLC-Plus
-          cd dist && zip -r "../OPLC-Plus.app.zip" "OPLC-Plus.app"
-        fi
+        echo "[*] Initializing cloud app packaging step..."
+        mkdir -p dist/OPLC-Plus.app/Contents/MacOS
+        mkdir -p dist/OPLC-Plus.app/Contents/Resources
+        
+        # Pull everything into resources safely
+        cp -R oclp_plus dist/OPLC-Plus.app/Contents/Resources/ 2>/dev/null || cp -R oplc_plus dist/OPLC-Plus.app/Contents/Resources/
+        
+        LAUNCHER_PATH=$(find dist/OPLC-Plus.app/Contents/Resources/ -name "os_data.py" | head -n 1)
+        
+        # Generate the main binary launcher script entrypoint dynamically pointing to your file
+        echo "#!/bin/bash" > dist/OPLC-Plus.app/Contents/MacOS/OPLC-Plus
+        echo "python3 \"\$(dirname \"\$0\")/../Resources/${LAUNCHER_PATH#dist/OPLC-Plus.app/Contents/Resources/}\"" >> dist/OPLC-Plus.app/Contents/MacOS/OPLC-Plus
+        chmod +x dist/OPLC-Plus.app/Contents/MacOS/OPLC-Plus
+        
+        cd dist && zip -r "../OPLC-Plus.app.zip" "OPLC-Plus.app"
 
-    # 7. Automate creating the official GitHub release page and append the binary asset download link
+    # 7. Create GitHub Release and Append File Attachment Automatically
     - name: Create Release and Upload Zip Asset
       uses: softprops/action-gh-release@v2
       with:
