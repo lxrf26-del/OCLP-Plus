@@ -4,20 +4,15 @@ All notable changes to the **OPLC-Plus** project will be documented in this file
 
 ---
 
-## [0.1.0-Beta.1] - 2026-10-31
+## [0.2.0-Alpha.2] - 2026-11-01
 
 ### 🚀 Added
-* **macOS 27 Registration:** Introduced core OS identifiers, hex strings (`0x001B0000`), and Darwin 27.x.x matching rules to register the *Golden Gate* ecosystem inside the patcher architecture.
-* **Tier 1 Intel Mac Target Matrix:** Added dictionary mapping structures tracking vintage hardware profiles from 2010 to 2015 (Westmere through Broadwell architectures, including the classic `MacPro6,1` "Trash Can").
-* **Universal Snapdragon SoC Platform Maps:** Integrated a universal hardware decoder identifying Qualcomm X-Elite, X-Plus, and legacy compute platforms (8cx Gen 2/3) to coordinate the ARM-to-ARM boot pipelines.
-* **Dynamic Boilerplate Config Generator:** Built Python script automation executing structural OpenCore layout pipelines, producing baseline `config.plist` skeletons dynamically customized by architecture.
-* **Programmatic Boot-Args Calculator:** Implemented localized boot configuration calculations targeting structural flags (`translation_mode`, `restore_driverkit`, `el2_bypass`, `iommu_bypass`) matching hardware specific profiles.
-* **Unified Snapdragon Emulation Firmware:** Drafted and integrated `SSDT-OPLC-SNAP.asl`, introducing a dual-part spoof mapping an authorized Apple Silicon M5 memory controller and basic I2C HID routing blocks.
-* **Tahoe Patch Harvester:** Added an automated extraction module tracking down and harvesting the baseline 159 legacy driver kext stack straight from mounted macOS 26 environments.
-* **Automated CI/CD Pipeline:** Configured a global GitHub Actions workflow validating core Python code and auto-compiling ASL blocks using the Intel ACPI compiler suite (`iasl`) with every commit.
+* **Bare-Metal Performance Alignment:** Optimized `arm2x86_core` routing modules following upstream verification of full-speed bare-metal execution matching Apple Silicon M4 performance metrics.
+* **Log Gathering Framework:** Staged internal pipeline frameworks to accept and parse incoming community hardware boot logs to broaden initial deployment support.
 
 ### 🔄 Changed
-* **Patcher Execution Guard:** Overrode mainline OpenCore Legacy Patcher protection routines to intentionally permit configuration generation blocks for unsupported non-Apple ARM and legacy Intel x86 silicon.
+* **Release Timeline Calibration:** Shifted the launch target window to align with the upcoming v3 deployment schedule (estimated 1–2 weeks).
+
 
 ### 🛑 Fixed
 * Fixed a syntax collision inside the unified `SSDT-OPLC-SNAP.asl` script block by containing the system bus scope inside a singular consolidated `DefinitionBlock`.
