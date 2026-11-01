@@ -1,24 +1,24 @@
-name: Generate Application Release Asset
+name: Generate Application Release Asset (Linux Server Environment)
 
 on:
   push:
     tags:
-      - 'v*' # Triggers instantly whenever you push a version tag (e.g., v0.1.0)
-  workflow_dispatch: # Allows you to manually click a "Run workflow" test button on the web interface
+      - 'v*'
+  workflow_dispatch: # Allows you to manually trigger a run test from the Actions web UI tab
 
 permissions:
-  contents: write # Grants the cloud runner native permissions to compile, pack, and post releases
+  contents: write # Grants the Linux server permission to write the release and upload the zip
 
 jobs:
-  build_and_release:
-    runs-on: macos-13 # Ensures a pure Intel x86_64 Mac runner environment for native kext builds
+  build_and_release_on_linux:
+    runs-on: ubuntu-latest # MOVES WORKFLOW TO STANDARD LINUX SERVER (Ubuntu x86_64)
 
     steps:
-    # 1. Fetch your current repository files
+    # 1. Fetch your current repository files onto the Linux server
     - name: Checkout OPLC-Plus Repository
       uses: actions/checkout@v4
 
-    # 2. Start Python 3.11 Environment
+    # 2. Start Python 3.11 Environment on Linux
     - name: Set up Python Runtime (3.11)
       uses: actions/setup-python@v5
       with:
@@ -27,55 +27,78 @@ jobs:
     # 3. Dynamic Python Finder Step (Finds the script regardless of typo folders)
     - name: Lint and Validate Python Core Logic
       run: |
-        echo "[*] Dynamically tracking down os_data.py files in current workspace..."
+        echo "[*] Server searching for os_data.py in repository tracking paths..."
         TARGET_FILE=$(find . -name "os_data.py" | head -n 1)
         if [ -n "$TARGET_FILE" ]; then
-          echo "[+] Core target script discovered at: $TARGET_FILE"
+          echo "[+] Found core target script at: $TARGET_FILE"
           python3 -m py_compile "$TARGET_FILE"
         else
-          echo "[-] Error: Core script os_data.py could not be found anywhere in this repository!"
+          echo "[-] Error: Core script os_data.py was not found anywhere in the tree!"
           exit 1
         fi
 
-    # 4. Automatic Workspace Bundler Action
-    - name: Assemble Application Bundle Packages
+    # 4. Zero-Dependency Application Bundle Packaging
+    - name: Assemble macOS App Bundle Structure on Linux
       run: |
-        echo "[*] Packaging clean application bundle file matrices..."
+        echo "[*] Assembling native macOS app folder directory trees on Linux server host..."
         mkdir -p dist/OPLC-Plus.app/Contents/MacOS
         mkdir -p dist/OPLC-Plus.app/Contents/Resources
         
-        # Identify your package root directory folder dynamically
-        PACKAGE_ROOT=$(find . -name "os_data.py" | head -n 1 | cut -d'/' -f2)
-        echo "[+] Identified internal package root path directory as: $PACKAGE_ROOT"
+        # Pull your whole code tree into resources dynamically
+        cp -R * dist/OPLC-Plus.app/Contents/Resources/ 2>/dev/null || true
         
-        # Safely stage package resources inside the application bundle structure
-        cp -R "$PACKAGE_ROOT" dist/OPLC-Plus.app/Contents/Resources/
+        # Write the launcher execution binary right onto the Linux workspace filesystem
+        cat << 'EOF' > dist/OPLC-Plus.app/Contents/MacOS/OPLC-Plus
+        #!/bin/bash
+        APP_DIR="$(dirname "$0")"
+        TARGET_ENGINE=$(find "$APP_DIR/../Resources" -name "os_data.py" | head -n 1)
+        if [ -f "$TARGET_ENGINE" ]; then
+            python3 "$TARGET_ENGINE" --target intel_legacy --hardware_id "MacBookPro11,4"
+        else
+            osascript -e 'display dialog "OPLC-Plus Core Module Mapping Error: Script assets could not be found inside the bundle framework." buttons {"OK"} default button "OK" with icon stop'
+        fi
+        EOF
         
-        # Generate the main binary launcher script entrypoint pointing to your file dynamically
-        echo "#!/bin/bash" > dist/OPLC-Plus.app/Contents/MacOS/OPLC-Plus
-        echo 'python3 "$(dirname "$0")/../Resources/'"$PACKAGE_ROOT"'/scr/shared/os_data.py"' >> dist/OPLC-Plus.app/Contents/MacOS/OPLC-Plus
         chmod +x dist/OPLC-Plus.app/Contents/MacOS/OPLC-Plus
+
+        # Package the standard Info.plist metadata file manually
+        cat << 'EOF' > dist/OPLC-Plus.app/Contents/Info.plist
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://apple.com">
+        <plist version="1.0">
+        <dict>
+        	<key>CFBundleExecutable</key>
+        	<string>OPLC-Plus</string>
+        	<key>CFBundleIdentifier</key>
+        	<string>com.lxrf26del.OPLC-Plus.desktop</string>
+        	<key>CFBundleName</key>
+        	<string>OPLC-Plus</string>
+        	<key>CFBundlePackageType</key>
+        	<string>APPL</string>
+        	<key>CFBundleShortVersionString</key>
+        	<string>0.1.0</string>
+        	<key>LSMinimumSystemVersion</key>
+        	<string>10.15</string>
+        </dict>
+        </plist>
+        EOF
         
-        # Zip the bundle for release output distribution
+        # Compress the bundle using the Linux native zip tool utility
         cd dist && zip -r "../OPLC-Plus.app.zip" "OPLC-Plus.app"
 
-    # 5. Native GitHub CLI Release Automation
-    - name: Deploy Binary Release to GitHub via CLI
+    # 5. Native Linux GitHub CLI Release Automation
+    - name: Deploy Binary Release to GitHub via Linux CLI
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         TAG_NAME="${{ github.ref_name }}"
-        # If running manually via the dispatch button instead of a tag, provide a fallback tag string
         if [ "$TAG_NAME" == "main" ] || [ "$TAG_NAME" == "master" ]; then
-          TAG_NAME="v0.1.0-manual-build"
+          TAG_NAME="v0.1.0-linux-build"
         fi
         
-        echo "[*] Deploying native GitHub Release for tag: $TAG_NAME"
-        
-        # Deletes an existing release tracking configuration point if it already exists to overwrite it cleanly
+        echo "[*] Linux server communicating with GitHub API to deploy release for tag: $TAG_NAME"
         gh release delete "$TAG_NAME" --y || true
         
-        # Creates a fresh release post, generates the notes, and uploads your app asset binary in one step
         gh release create "$TAG_NAME" ./OPLC-Plus.app.zip \
           --title "OPLC-Plus Beta 1 ($TAG_NAME) - macOS 27 Patcher" \
-          --notes "Welcome to the initial release of **OPLC-Plus**, an experimental developer-focused framework targeting **macOS 27 Golden Gate** compatibility across legacy Intel hardware and Snapdragon ARM laptops."
+          --notes "Welcome to the initial release of **OPLC-Plus**, compiled natively via Ubuntu Linux Server. This experimental developer framework targets **macOS 27 Golden Gate** compatibility across legacy Intel hardware and Snapdragon ARM laptops."
