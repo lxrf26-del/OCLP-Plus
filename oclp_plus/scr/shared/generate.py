@@ -283,3 +283,20 @@ from translator import ARM2x86Translator
         core_translator.build_instruction_lut()
         core_translator.export_translation_payloads()
 
+# Insert this import at the top of src/shared/generate.py
+from framebuffer_patcher import FramebufferPatcher
+
+# Inside the build_intel_legacy_profile method (Right before returning the config):
+        # 5. Inject Iris Pro Custom Framebuffer parameters
+        if smbios_id in ["MacBookPro11,4", "MacBookPro11,1"]:
+            config = FramebufferPatcher.patch_intel_iris_pro(config)
+            print("[+] Injected custom Intel Iris Pro stolen memory and VESA patches.")
+            
+        return config
+
+# Inside the build_snapdragon_profile method (Right before returning the config):
+        # 5. Inject Snapdragon Display layout parameters
+        config = FramebufferPatcher.patch_snapdragon_display(config, profile["gpu_architecture"])
+        print("[+] Injected universal Snapdragon display bus layout patches.")
+        
+        return config
