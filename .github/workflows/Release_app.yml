@@ -3,15 +3,15 @@ name: Generate Application Release Asset
 on:
   push:
     tags:
-      - 'v*' # Triggers instantly whenever you push a tag (e.g., v0.1.0)
-  workflow_dispatch: # Allows you to manually trigger a run test from the Actions web UI tab
+      - 'v*' # Triggers instantly whenever you push a version tag (e.g., v0.1.0)
+  workflow_dispatch: # Allows you to manually click a "Run workflow" test button on the web interface
 
 permissions:
-  contents: write
+  contents: write # Grants the cloud runner native permissions to compile, pack, and post releases
 
 jobs:
-  validate_and_compile:
-    runs-on: macos-13 # Ensures a pure Intel x86_64 Mac runner environment
+  build_and_release:
+    runs-on: macos-13 # Ensures a pure Intel x86_64 Mac runner environment for native kext builds
 
     steps:
     # 1. Fetch your current repository files
@@ -27,64 +27,55 @@ jobs:
     # 3. Dynamic Python Finder Step (Finds the script regardless of typo folders)
     - name: Lint and Validate Python Core Logic
       run: |
-        echo "[*] Locating os_data.py files in current tree..."
+        echo "[*] Dynamically tracking down os_data.py files in current workspace..."
         TARGET_FILE=$(find . -name "os_data.py" | head -n 1)
         if [ -n "$TARGET_FILE" ]; then
-          echo "[+] Found core target script at: $TARGET_FILE"
+          echo "[+] Core target script discovered at: $TARGET_FILE"
           python3 -m py_compile "$TARGET_FILE"
         else
-          echo "[-] Error: Core script os_data.py was not found anywhere in the tree!"
+          echo "[-] Error: Core script os_data.py could not be found anywhere in this repository!"
           exit 1
         fi
 
-    # 4. Install Intel ACPI Compiler Tools
-    - name: Install Intel ACPI Compiler Tools (iasl)
+    # 4. Automatic Workspace Bundler Action
+    - name: Assemble Application Bundle Packages
       run: |
-        brew update
-        brew install iasl
-
-    # 5. Dynamic ACPI Table Finder & Compilation 
-    - name: Compile Universal Snapdragon Emulation ACPI Table
-      run: |
-        mkdir -p dist/acpi
-        ASL_FILE=$(find . -name "SSDT-OPLC-SNAP.asl" | head -n 1)
-        if [ -n "$ASL_FILE" ]; then
-          echo "[+] Compiling firmware source table: $ASL_FILE"
-          iasl -sa -p dist/acpi/SSDT-OPLC-SNAP "$ASL_FILE"
-        else
-          echo "[!] Skipping ASL stage: SSDT-OPLC-SNAP.asl not present in layout."
-        fi
-
-    # 6. Automatic Workspace Bundler Action
-    - name: Run Build Action Script
-      run: |
-        echo "[*] Initializing cloud app packaging step..."
+        echo "[*] Packaging clean application bundle file matrices..."
         mkdir -p dist/OPLC-Plus.app/Contents/MacOS
         mkdir -p dist/OPLC-Plus.app/Contents/Resources
         
-        # Pull everything into resources safely
-        cp -R oclp_plus dist/OPLC-Plus.app/Contents/Resources/ 2>/dev/null || cp -R oplc_plus dist/OPLC-Plus.app/Contents/Resources/ 2>/dev/null || true
+        # Identify your package root directory folder dynamically
+        PACKAGE_ROOT=$(find . -name "os_data.py" | head -n 1 | cut -d'/' -f2)
+        echo "[+] Identified internal package root path directory as: $PACKAGE_ROOT"
         
-        LAUNCHER_PATH=$(find dist/OPLC-Plus.app/Contents/Resources/ -name "os_data.py" | head -n 1)
+        # Safely stage package resources inside the application bundle structure
+        cp -R "$PACKAGE_ROOT" dist/OPLC-Plus.app/Contents/Resources/
         
-        # Generate the main binary launcher script entrypoint dynamically pointing to your file
+        # Generate the main binary launcher script entrypoint pointing to your file dynamically
         echo "#!/bin/bash" > dist/OPLC-Plus.app/Contents/MacOS/OPLC-Plus
-        echo "python3 \"\$(dirname \"\$0\")/../Resources/${LAUNCHER_PATH#dist/OPLC-Plus.app/Contents/Resources/}\"" >> dist/OPLC-Plus.app/Contents/MacOS/OPLC-Plus
+        echo 'python3 "$(dirname "$0")/../Resources/'"$PACKAGE_ROOT"'/scr/shared/os_data.py"' >> dist/OPLC-Plus.app/Contents/MacOS/OPLC-Plus
         chmod +x dist/OPLC-Plus.app/Contents/MacOS/OPLC-Plus
         
+        # Zip the bundle for release output distribution
         cd dist && zip -r "../OPLC-Plus.app.zip" "OPLC-Plus.app"
 
-    # 7. Create GitHub Release and Append File Attachment Automatically
-    - name: Create Release and Upload Zip Asset
-      uses: softprops/action-gh-release@v2
-      with:
-        name: "OPLC-Plus Beta 1 (${{ github.ref_name }}) - macOS 27 Patcher"
-        body: |
-          # OPLC-Plus Release Milestone (Intel Tier-1 Launch)
-
-          Welcome to the initial release of **OPLC-Plus**, an experimental developer-focused framework targeting **macOS 27 Golden Gate** compatibility across legacy Intel hardware and Snapdragon ARM laptops.
-
-          _Download the application bundle attached below, unzip, and clear gatekeeper quarantine configurations (`xattr -cr /Applications/OPLC-Plus.app`) before launching._
-        files: ./OPLC-Plus.app.zip
+    # 5. Native GitHub CLI Release Automation
+    - name: Deploy Binary Release to GitHub via CLI
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        TAG_NAME="${{ github.ref_name }}"
+        # If running manually via the dispatch button instead of a tag, provide a fallback tag string
+        if [ "$TAG_NAME" == "main" ] || [ "$TAG_NAME" == "master" ]; then
+          TAG_NAME="v0.1.0-manual-build"
+        fi
+        
+        echo "[*] Deploying native GitHub Release for tag: $TAG_NAME"
+        
+        # Deletes an existing release tracking configuration point if it already exists to overwrite it cleanly
+        gh release delete "$TAG_NAME" --y || true
+        
+        # Creates a fresh release post, generates the notes, and uploads your app asset binary in one step
+        gh release create "$TAG_NAME" ./OPLC-Plus.app.zip \
+          --title "OPLC-Plus Beta 1 ($TAG_NAME) - macOS 27 Patcher" \
+          --notes "Welcome to the initial release of **OPLC-Plus**, an experimental developer-focused framework targeting **macOS 27 Golden Gate** compatibility across legacy Intel hardware and Snapdragon ARM laptops."
