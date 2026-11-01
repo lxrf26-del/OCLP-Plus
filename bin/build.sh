@@ -58,9 +58,9 @@ while [[ $# -gt 0 ]]; do
             shift
             exit 0
             ;;
-        --intel)
+                --intel)
             if [ -z "$2" ]; then
-                echo -e "${RED}[-] Error: --intel flag requires an active SMBIOS identifier target.${NC}"
+                echo -e "${RED}[- ] Error: --intel flag requires an active SMBIOS identifier target.${NC}"
                 exit 1
             fi
             TARGET_ID="$2"
@@ -70,13 +70,21 @@ while [[ $# -gt 0 ]]; do
             # Step 1: Run driver harvest routine
             python3 src/target_intel/extract_tahoe_kexts.py
             
-            # Step 2: Compile the OpenCore layout template and microcode tables
+            # --- NEW: Step 2: Compile the low-level C++ driver engine via Makefile ---
+            echo -e "${CYAN}[*] Compiling custom translation core kernel driver...${NC}"
+            make -C src/target_intel/arm2x86_core/kext clean all install
+            
+            # Step 3: Compile the OpenCore layout template and microcode tables
             python3 src/shared/generate.py --target intel_legacy --hardware_id "$TARGET_ID"
+            
+            # Step 4: Run audit check
+            python3 src/shared/verify_config.py
             
             echo -e "${GREEN}[+++] Phase 1 deployment build finalized successfully inside /dist workspace.${NC}"
             shift 2
             exit 0
             ;;
+
         --snapdragon)
             TARGET_SOC="${2:-X1E-80-100}" # Fallback to mid-tier standard model identifier if empty
             
@@ -102,29 +110,3 @@ while [[ $# -gt 0 ]]; do
             exit 1
             ;;
     esac
-done
-# Update the --intel flag logic inside /build.sh to include the structural check:
-        --intel)
-            # ... previous generation script calls ...
-            python3 src/shared/generate.py --target intel_legacy --hardware_id "$TARGET_ID"
-            
-            # --- NEW: Run configuration verification before declaring success ---
-            python3 src/shared/verify_config.py
-            
-            echo -e "${GREEN}[+++] Phase 1 deployment build finalized successfully inside /dist workspace.${NC}"
-            shift 2
-            exit 0
-            ;;
-
-# Do the exact same thing to update the --snapdragon case loop inside /build.sh:
-        --snapdragon)
-            # ... previous firmware compilation script calls ...
-            python3 src/shared/generate.py --target snapdragon --hardware_id "$TARGET_SOC"
-            
-            # --- NEW: Run configuration verification before declaring success ---
-            python3 src/shared/verify_config.py
-            
-            echo -e "${GREEN}[+++] Phase 1 deployment build finalized successfully inside /dist workspace.${NC}"
-            shift 2
-            exit 0
-            ;;
