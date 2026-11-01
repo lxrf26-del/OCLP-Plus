@@ -1,28 +1,45 @@
 name: Generate Application Release Asset
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'v*' # Triggers instantly whenever you push an architecture tag (e.g., v0.1.0)
+
+permissions:
+  contents: write # Mandatory permission allowing the Intel runner to publish the release
 
 jobs:
   build_macos_app:
-    runs-on: macos-latest
+    runs-on: macos-13 # FORCES INTEL X86_64 CLOUD RUNNER (Native x86 Clang/Xcode toolchains)
 
     steps:
     - name: Checkout Code Tree
       uses: actions/checkout@v4
+
+    - name: Set up Python Environment
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
 
     - name: Run Build Action Script
       run: |
         chmod +x .github/actions/build_app.sh
         ./.github/actions/build_app.sh
 
-    - name: Upload Application Zip to Release Page
-      uses: actions/upload-release-asset@v1
+    - name: Create Release and Upload Zip Asset
+      uses: softprops/action-gh-release@v2
+      with:
+        name: "OPLC-Plus Beta 1 (${{ github.ref_name }}) - macOS 27 Patcher"
+        body: |
+          # OPLC-Plus Release Milestone (Intel Tier-1 Launch)
+
+          Welcome to the initial release of **OPLC-Plus**, an experimental developer-focused framework targeting **macOS 27 Golden Gate** compatibility across legacy Intel hardware and Snapdragon ARM laptops.
+
+          ### 🚀 Core Platform Targets
+          * **Intel Branch:** Includes `arm2x86_core` instruction translators and Iris Pro display VESA overrides (`-igfxvesa-no-egpu`).
+          * **Qualcomm Branch:** Integrates universal ACPI firmware overrides (`SSDT-OPLC-SNAP.aml`) and EL2 hypervisor shims.
+
+          _Download the application bundle attached below, unzip, and clear gatekeeper quarantine configurations (`xattr -cr /Applications/OPLC-Plus.app`) before launching._
+        files: ./OPLC-Plus.app.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./OPLC-Plus.app.zip
-        asset_name: OPLC-Plus.app.zip
-        asset_content_type: application/zip
