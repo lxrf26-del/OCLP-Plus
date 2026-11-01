@@ -27,7 +27,7 @@ jobs:
     # 3. Check Python scripts for syntax errors using your exact folder layout path
     - name: Lint and Validate Python Core Logic
       run: |
-        python3 -m py_compile oplc_plus/scr/os_data.py
+        python3 -m py_compile oplc_plus/scr/shared/os_data.py
 
     # 4. Install the official Intel ACPI Compiler (iasl) tool utilities
     - name: Install Intel ACPI Compiler Tools (iasl)
@@ -39,9 +39,7 @@ jobs:
     - name: Compile Universal Snapdragon Emulation ACPI Table
       run: |
         mkdir -p dist/acpi
-        if [ -f "oplc_plus/src/target_snapdragon/SSDT-OPLC-SNAP.asl" ]; then
-          iasl -sa -p dist/acpi/SSDT-OPLC-SNAP oplc_plus/src/target_snapdragon/SSDT-OPLC-SNAP.asl
-        elif [ -f "oplc_plus/scr/target_snapdragon/SSDT-OPLC-SNAP.asl" ]; then
+        if [ -f "oplc_plus/scr/target_snapdragon/SSDT-OPLC-SNAP.asl" ]; then
           iasl -sa -p dist/acpi/SSDT-OPLC-SNAP oplc_plus/scr/target_snapdragon/SSDT-OPLC-SNAP.asl
         else
           echo "[!] Skipping ASL compilation: Source file not found."
@@ -58,7 +56,7 @@ jobs:
           mkdir -p dist/OPLC-Plus.app/Contents/MacOS
           mkdir -p dist/OPLC-Plus.app/Contents/Resources
           cp -R oplc_plus dist/OPLC-Plus.app/Contents/Resources/
-          echo -e '#!/bin/bash\npython3 "$(dirname "$0")/../Resources/oplc_plus/scr/os_data.py"' > dist/OPLC-Plus.app/Contents/MacOS/OPLC-Plus
+          echo -e '#!/bin/bash\npython3 "$(dirname "$0")/../Resources/oplc_plus/scr/shared/os_data.py"' > dist/OPLC-Plus.app/Contents/MacOS/OPLC-Plus
           chmod +x dist/OPLC-Plus.app/Contents/MacOS/OPLC-Plus
           cd dist && zip -r "../OPLC-Plus.app.zip" "OPLC-Plus.app"
         fi
@@ -77,4 +75,3 @@ jobs:
         files: ./OPLC-Plus.app.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
